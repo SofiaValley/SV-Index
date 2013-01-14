@@ -1,8 +1,8 @@
+bin\
+obj\
 *.com
 *.class
 *.dll
 *.exe
 *.user
 *.vspscc
-bin\
-obj\

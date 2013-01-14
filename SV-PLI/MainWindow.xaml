@@ -1,0 +1,22 @@
+﻿<Window x:Class="SV_PLI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="350" Width="525">
+    <StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Button Content="Build Index" Click="JobsbgClick" Margin="10"/>
+            <Button Content="Export" Click="ExportClick" Margin="10"/>
+        </StackPanel>
+
+        <ListBox x:Name="listBox">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Language}"/>
+                        <TextBlock Text="{Binding Mentions}" FontWeight="Black" Margin="10"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </StackPanel>
+</Window>
