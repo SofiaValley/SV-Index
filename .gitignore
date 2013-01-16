@@ -6,3 +6,5 @@ obj\
 *.exe
 *.user
 *.vspscc
+bin
+obj
