@@ -1,4 +1,4 @@
-SV-PJI
+SVIndex
 ======
 
 Sofia Valley Programming Job Index
