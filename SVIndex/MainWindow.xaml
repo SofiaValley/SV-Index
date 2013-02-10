@@ -1,22 +1,69 @@
-﻿<Window x:Class="SVIndex.MainWindow"
+﻿<Window x:Class="SV_PLI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="350" Width="525">
-    <StackPanel>
+        xmlns:crawlers="clr-namespace:SV_PLI.Crawlers"
+        Title="MainWindow"
+        Height="350"
+        Width="525"
+        Loaded="MainWindow_OnLoaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal">
-            <Button Content="Build Index" Click="JobsbgClick" Margin="10"/>
-            <Button Content="Export" Click="ExportClick" Margin="10"/>
+            <Button Content="Build Index"
+                    Click="JobsbgClick"
+                    Margin="10" />
+            <Button Content="Export"
+                    Click="ExportClick"
+                    Margin="10" />
         </StackPanel>
 
-        <ListBox x:Name="listBox">
-            <ListBox.ItemTemplate>
+        <ListBox Grid.Row="1"
+                 HorizontalContentAlignment="Stretch"
+                 x:Name="listBox">
+            <!--<ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{Binding Language}"/>
                         <TextBlock Text="{Binding Mentions}" FontWeight="Black" Margin="10"/>
                     </StackPanel>
                 </DataTemplate>
+            </ListBox.ItemTemplate>-->
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="crawlers:JobPost">
+                    <DockPanel HorizontalAlignment="Stretch"
+                               Background="DimGray">
+                        <TextBlock DockPanel.Dock="Left"
+                                   Text="{Binding Date, StringFormat=yyyy/MM/dd}"
+                                   Margin="4"
+                                   VerticalAlignment="Center" />
+                        <ItemsControl DockPanel.Dock="Left" ItemsSource="{Binding Categories}" />
+                        <Expander Margin="4"
+                                  HorizontalContentAlignment="Stretch"
+                                  HorizontalAlignment="Stretch"
+                                  Background="Gold"
+                                  IsExpanded="False">
+                            <Expander.Header>
+                                <DockPanel Background="Fuchsia"
+                                           HorizontalAlignment="Stretch">
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Text="{Binding Organisation}"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock 
+                                               Text="{Binding Title}"
+                                               FontWeight="Black"
+                                               VerticalAlignment="Center" />
+                                    
+                                </DockPanel>
+                            </Expander.Header>
+                            <TextBlock TextWrapping="Wrap"
+                                       Text="{Binding Details}" />
+                        </Expander>
+                    </DockPanel>
+                </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-    </StackPanel>
+    </Grid>
 </Window>

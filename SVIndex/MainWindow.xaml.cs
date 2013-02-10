@@ -1,121 +1,148 @@
-﻿using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using SV_PLI.Crawlers;
+using SV_PLI.Persistence;
 
-namespace SVIndex
+namespace SV_PLI
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
-        private List<string> languages = new List<string>
-        {
-            "Java",
-            "C#",
-            "C++",
-            "Php",
-            "Python",
-            "Ruby",
-            "Objective-C",
-            "JavaScript"
-        };
+        readonly ObservableCollection<JobPost> _posts;
 
-        private ObservableCollection<Index> monthIndex = new ObservableCollection<Index>();
+        private readonly List<Mention> _mentions = new List<Mention>
+                                              {
+                                                  new Mention(@"\bjava\b", "Java"),
+                                                  new Mention(@"\bc\#", "C#"),
+                                                  new Mention(@"\bvb\b", "VisualBasic"),
+                                                  new Mention(@"\bvisual\s*basic\b", "VisualBasic"),
+                                                  new Mention(@"\bc\s*\+\+", "C++"),
+                                                  new Mention(@"\s+c\b", "C"),
+                                                  new Mention(@"\bphp\b", "PHP"),
+                                                  new Mention(@"\bpython\b", "Python"),
+                                                  new Mention(@"\bruby\b", "Ruby"),
+                                                  new Mention(@"\bobjective[\s-]*c\b", "ObjectiveC"),
+                                                  new Mention(@"\bjava\s*script\b", "JavaScript"),
+                                                  new Mention(@"\bdelphi\b", "Delphi"),
+                                              };
+        /*private List<string> _languages = new List<string>
+        {
+            "java",
+            "c#",
+            "c++",
+            "php",
+            "python",
+            "ruby",
+            "objective-c",
+            "javascript"
+        };*/
+
+        public static string[] GetMentions(IEnumerable<Mention> mentions, string text)
+        {
+            return mentions.Where(m => m.Regex.IsMatch(text)).Select(m => m.Technology).ToArray();
+        }
 
         public MainWindow()
         {
             InitializeComponent();
 
-            this.listBox.ItemsSource = monthIndex;            
+            var jobPosts = JobPostExtensions.Read("posts.db3").Where(p => (p.Date >= new DateTime(2013, 1, 1)) && (p.Date < new DateTime(2013, 2, 1)));
+            foreach (JobPost post in jobPosts)
+            {
+                post.Categories = GetMentions(_mentions, post.Title + " " + post.Details);
+            }
+            //var filteredJobPosts = jobPosts.Where(p => !_mentions.Any(m => m.Regex.IsMatch(p.Title + " " + p.Details)));
+            _posts = new ObservableCollection<JobPost>(jobPosts);
+            _posts.CollectionChanged += PostsCollectionChanged;
+            listBox.ItemsSource = _posts; //monthIndex;
+        }
+
+        void PostsCollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (_posts.Count <= 0)
+                return;
+
+            int selectedIndex = _posts.Count - 1;
+            listBox.SelectedIndex = selectedIndex;
+        }
+
+        private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
+        {
+
         }
 
         private void JobsbgClick(object sender, RoutedEventArgs e)
         {
-            foreach (var language in languages)
+            Task.Factory.StartNew(() => RunCrawler((Button)sender),
+                TaskCreationOptions.AttachedToParent | TaskCreationOptions.LongRunning);
+        }
+
+        private void RunCrawler(Button sender)
+        {
+            Dispatcher.BeginInvoke(new Action(() => sender.IsEnabled = false));
+
+            Dispatcher.BeginInvoke(new Action(() => _posts.Clear()));
+            var connection = JobPostExtensions.OpenNewDatabase("posts.db3");
+            var crawler = new JobsBgCrawler();
+            //DateTime prev = DateTime.Today.AddDays((DateTime.Today.Day - 1) * -1);
+            foreach (JobPost post in crawler.GetAllPosts())
             {
-                Task.Run(() =>
-                    {
-                        WebClient client = new WebClient();
-                        using (var stream = client.OpenRead(GetUrl(language)))
-                        {
-                            using (StreamReader reader = new StreamReader(stream))
-                            {
-                                var site = reader.ReadToEnd();
-
-                                var index = new Index
-                                {
-                                    Language = language,
-                                    Mentions = GetCount(site)
-                                };
-
-                                this.Dispatcher.BeginInvoke(new Action(() => this.monthIndex.Add(index)));
-                            }
-                        }
-                    });
+                /*if (post.Date < prev)
+                    break;*/
+                post.Load();
+                JobPost post1 = post;
+                Dispatcher.BeginInvoke(new Action(() => _posts.Add(post1)));
+                post1.Write(connection);
+                Application.Current.DoEvents();
             }
+            connection.Close();
+            Dispatcher.BeginInvoke(new Action(() => sender.IsEnabled = true));
         }
 
         private void ExportClick(object sender, RoutedEventArgs e)
         {
-            Export(this.monthIndex);
-        }
-
-        internal static void Export(IEnumerable<Index> mentions)
-        {
-            var allMentions = mentions.Sum(i => i.Mentions);
-
-            SaveFileDialog dialog = new SaveFileDialog();
-            if (dialog.ShowDialog().GetValueOrDefault())
+            var boo =
+                _posts.SelectMany(p => p.Categories)
+                      .GroupBy(s => s)
+                      .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+                      .OrderByDescending(k=>k.Value)
+                      .ToArray();
+            using (var writer = new StreamWriter("out.csv"))
             {
-                using (var file = dialog.OpenFile())
+                writer.WriteLine("\"tech\"\t\"count\"");
+                foreach (var keyValuePair in boo)
                 {
-                    using (StreamWriter write = new StreamWriter(file))
-                    {
-                        write.WriteLine("Позиция, Език за програмиране, Срещания в обяви, % от всички ");
-                        int position = 1;
-                        foreach (var index in mentions.OrderByDescending(l => l.Mentions))
-                        {
-                            write.WriteLine("{0}, {1}, {2}, {3:P}", position++, index.Language, index.Mentions, (double)index.Mentions / allMentions);
-                        }
-                    }
+                    writer.WriteLine("\"{0}\"\t{1}", keyValuePair.Key, keyValuePair.Value);
                 }
             }
-        }
-
-        private Uri GetUrl(string language)
-        {
-            language = Uri.EscapeDataString(language);
-            var uri = string.Format("http://www.jobs.bg/front_job_search.php?keyword={0}", language);
-            return new Uri(uri, UriKind.Absolute);
-        }
-
-        private static int GetCount(string site)
-        {
-            Regex r = new Regex("<td class=\"pagingtotal\">\\d - \\d* от (\\d*)</td>", RegexOptions.IgnoreCase);
-            foreach (Match match in r.Matches(site))
-            {
-                int value = 0;
-                if (int.TryParse(match.Groups[1].Value, out value))
-                {
-                    return value;
-                }
-            }
-            return 0;
         }
     }
 
-    public class Index
+    public class Mention
     {
-        public string Language { get; set; }
+        public Mention()
+        {
+        }
 
-        public int Mentions { get; set; }
+        public Mention(string regex, string technology)
+        {
+            Technology = technology;
+            Regex =
+                new Regex(regex,
+                          RegexOptions.IgnoreCase |
+                          RegexOptions.Compiled);
+        }
+
+        public Regex Regex { get; set; }
+        public string Technology { get; set; }
     }
 }
