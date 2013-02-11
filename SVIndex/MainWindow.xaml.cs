@@ -21,12 +21,12 @@ namespace SV_PLI
 
         private readonly List<Mention> _mentions = new List<Mention>
                                               {
-                                                  new Mention(@"\bjava\b", "Java"),
+                                                  new Mention(@"\bjava\b(?!\s*script)", "Java"),
                                                   new Mention(@"\bc\#", "C#"),
                                                   new Mention(@"\bvb\b", "VisualBasic"),
                                                   new Mention(@"\bvisual\s*basic\b", "VisualBasic"),
                                                   new Mention(@"\bc\s*\+\+", "C++"),
-                                                  new Mention(@"\s+c\b", "C"),
+                                                  new Mention(@"(?!\bobjective)\bc(?![#\+])\b", "C"),
                                                   new Mention(@"\bphp\b", "PHP"),
                                                   new Mention(@"\bpython\b", "Python"),
                                                   new Mention(@"\bruby\b", "Ruby"),
