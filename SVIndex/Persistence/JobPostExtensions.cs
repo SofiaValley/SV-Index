@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SQLite;
+using System.IO;
 using SV_PLI.Crawlers;
 using Dapper;
 
@@ -9,32 +10,42 @@ namespace SV_PLI.Persistence
 {
     public static class JobPostExtensions
     {
-        public static SQLiteConnection OpenNewDatabase(string fileName)
+        public static SQLiteConnection OpenDatabase(string fileName)
         {
-            var connection = new SQLiteConnection(String.Format("Data Source={0}", fileName));
-            connection.Open();
-            connection.Execute(
-                "CREATE TABLE post(post_id TEXT, external BOOL, failed BOOL, ref_no TEXT, date DATE, categories TEXT, job_type TEXT, level TEXT, employment_type TEXT, title TEXT, details TEXT, location TEXT, organization TEXT, zaplata TEXT)");
+            SQLiteConnection connection;
+            if (File.Exists(fileName))
+            {
+                connection = new SQLiteConnection(String.Format("Data Source={0}", fileName));
+                connection.Open();    
+            }
+            else
+            {
+                connection = new SQLiteConnection(String.Format("Data Source={0}", fileName));
+                connection.Open();
+                connection.Execute(
+                    "CREATE TABLE post(post_id TEXT PRIMARY KEY, external BOOL, failed BOOL, ref_no TEXT, date DATE, categories TEXT, job_type TEXT, level TEXT, employment_type TEXT, title TEXT, details TEXT, location TEXT, organization TEXT, zaplata TEXT)");                
+            }
+
             return connection;
         }
 
         public static void Write(this JobPost post, DbConnection connection)
         {
             connection.Execute(
-                @"INSERT INTO post(post_id, external, failed, ref_no, date, title, details, location, organization, zaplata) 
+                @"INSERT OR REPLACE INTO post(post_id, external, failed, ref_no, date, title, details, location, organization, zaplata) 
                     VALUES (@Id, @IsExternal, @IsFailed, @RefNo, @Date, @Title, @Details, @Location, @Organisation, @Zaplata)",
                 new
                     {
-                        Id = post.Id,
-                        IsExternal = post.IsExternal,
-                        IsFailed = post.IsFailed,
-                        RefNo = post.RefNo,
-                        Date = post.Date,
-                        Title = post.Title,
-                        Details = post.Details,
-                        Location = post.Location,
-                        Organisation = post.Organisation,
-                        Zaplata = post.Zaplata
+                        post.Id,
+                        post.IsExternal,
+                        post.IsFailed,
+                        post.RefNo,
+                        post.Date,
+                        post.Title,
+                        post.Details,
+                        post.Location,
+                        post.Organisation,
+                        post.Zaplata
                     });
         }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -55,10 +56,17 @@ namespace SV_PLI
         {
             InitializeComponent();
 
-            var jobPosts = JobPostExtensions.Read("posts.db3").Where(p => (p.Date >= new DateTime(2013, 1, 1)) && (p.Date < new DateTime(2013, 2, 1)));
-            foreach (JobPost post in jobPosts)
+            IEnumerable<JobPost> jobPosts = new JobPost[0];
+            if (File.Exists("posts.db3"))
             {
-                post.Categories = GetMentions(_mentions, post.Title + " " + post.Details);
+                jobPosts = JobPostExtensions.Read("posts.db3")
+                                            /*.Where(
+                                                p =>
+                                                (p.Date >= new DateTime(2013, 1, 1)) && (p.Date < new DateTime(2013, 2, 1)))*/;
+                foreach (JobPost post in jobPosts)
+                {
+                    post.Categories = GetMentions(_mentions, post.Title + " " + post.Details);
+                }
             }
             //var filteredJobPosts = jobPosts.Where(p => !_mentions.Any(m => m.Regex.IsMatch(p.Title + " " + p.Details)));
             _posts = new ObservableCollection<JobPost>(jobPosts);
@@ -73,6 +81,8 @@ namespace SV_PLI
 
             int selectedIndex = _posts.Count - 1;
             listBox.SelectedIndex = selectedIndex;
+
+            StatusText.Content = String.Format("Total job posts: {0}, Failed {1}", _posts.Count(), _posts.Count(p=>p.IsFailed));
         }
 
         private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
@@ -91,7 +101,7 @@ namespace SV_PLI
             Dispatcher.BeginInvoke(new Action(() => sender.IsEnabled = false));
 
             Dispatcher.BeginInvoke(new Action(() => _posts.Clear()));
-            var connection = JobPostExtensions.OpenNewDatabase("posts.db3");
+            var connection = JobPostExtensions.OpenDatabase("posts.db3");
             var crawler = new JobsBgCrawler();
             //DateTime prev = DateTime.Today.AddDays((DateTime.Today.Day - 1) * -1);
             foreach (JobPost post in crawler.GetAllPosts())
@@ -99,6 +109,7 @@ namespace SV_PLI
                 /*if (post.Date < prev)
                     break;*/
                 post.Load();
+                post.Categories = GetMentions(_mentions, post.Title + " " + post.Details);
                 JobPost post1 = post;
                 Dispatcher.BeginInvoke(new Action(() => _posts.Add(post1)));
                 post1.Write(connection);
@@ -124,6 +135,7 @@ namespace SV_PLI
                     writer.WriteLine("\"{0}\"\t{1}", keyValuePair.Key, keyValuePair.Value);
                 }
             }
+            Process.Start("out.csv");
         }
     }
 

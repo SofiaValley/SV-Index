@@ -10,6 +10,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal">
             <Button Content="Build Index"
@@ -65,5 +66,9 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+        
+        <StatusBar Grid.Row="2" x:Name="Statusbar1">
+            <StatusBarItem x:Name="StatusText" />
+        </StatusBar>
     </Grid>
 </Window>
