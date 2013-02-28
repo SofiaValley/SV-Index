@@ -8,7 +8,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal">
-            <Button Content="Run Crawler" Click="JobsbgClick" Margin="10" />
+            <Button Content="Run Crawler" Click="RunCrawlerClick" Margin="10" />
             <Button Content="Export Index" Click="ExportClick" Margin="10" />
             <Button Content="Preserve Index" Click="PreserveClick" Margin="10" />
         </StackPanel>

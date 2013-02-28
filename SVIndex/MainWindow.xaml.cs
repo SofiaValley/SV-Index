@@ -1,4 +1,7 @@
-﻿using System;
+﻿using MongoDB.Driver;
+using SVIndex.Crawlers;
+using SVIndex.Persistence;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -7,9 +10,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using MongoDB.Driver;
-using SVIndex.Crawlers;
-using SVIndex.Persistence;
 
 namespace SVIndex
 {
@@ -18,8 +18,9 @@ namespace SVIndex
     /// </summary>
     public partial class MainWindow : Window
     {
-        readonly ObservableCollection<JobPost> posts;
-
+        private readonly ObservableCollection<JobPost> posts;
+        private readonly MongoDatabase db;
+        private IEnumerable<SVIndexInfo> svIndices;
         private readonly List<Mention> mentions = new List<Mention>
                                               {
                                                   new Mention(@"\bjava\b(?!\s*script)", "Java"),
@@ -36,8 +37,6 @@ namespace SVIndex
                                                   new Mention(@"\bdelphi\b", "Delphi"),
                                               };
 
-        private readonly MongoDatabase db;
-
         public static string[] GetMentions(IEnumerable<Mention> mentions, string text)
         {
             return mentions.Where(m => m.Regex.IsMatch(text)).Select(m => m.Technology).ToArray();
@@ -48,28 +47,23 @@ namespace SVIndex
             InitializeComponent();
 
             this.db = JobPostExtensions.OpenDatabase();
-
-            posts = new ObservableCollection<JobPost>();
+            this.posts = new ObservableCollection<JobPost>();
 
             this.LoadPostsAsync();
-            posts.CollectionChanged += PostsCollectionChanged;
-            listBox.ItemsSource = posts; //monthIndex;
+            this.posts.CollectionChanged += PostsCollectionChanged;
+            this.listBox.ItemsSource = posts;
         }
 
         private void LoadPostsAsync()
         {
             Task.Factory.StartNew(() =>
                 {
-                    var jobPosts = this.db.GetPosts()
-                        /*.Where(
-                            p =>
-                            (p.Date >= new DateTime(2013, 1, 1)) && (p.Date < new DateTime(2013, 2, 1)))*/;
+                    var jobPosts = this.db.GetPosts();
                     foreach (JobPost post in jobPosts)
                     {
                         post.Categories = GetMentions(mentions, post.Title + " " + post.Details);
                         this.Dispatcher.BeginInvoke(new Action(() => this.posts.Add(post)));
                     }
-
                 });
             //var filteredJobPosts = jobPosts.Where(p => !_mentions.Any(m => m.Regex.IsMatch(p.Title + " " + p.Details)));
         }
@@ -85,7 +79,7 @@ namespace SVIndex
             StatusText.Content = String.Format("Total job posts: {0}, Failed {1}", posts.Count(), posts.Count(p => p.IsFailed));
         }
 
-        private void JobsbgClick(object sender, RoutedEventArgs e)
+        private void RunCrawlerClick(object sender, RoutedEventArgs e)
         {
             Task.Factory.StartNew(() => RunCrawler((Button)sender),
                 TaskCreationOptions.AttachedToParent | TaskCreationOptions.LongRunning);
@@ -98,11 +92,8 @@ namespace SVIndex
             Dispatcher.BeginInvoke(new Action(() => posts.Clear()));
             this.db.DropDatabase();
             var crawler = new JobsBgCrawler();
-            //DateTime prev = DateTime.Today.AddDays((DateTime.Today.Day - 1) * -1);
             foreach (JobPost post in crawler.GetAllPosts())
             {
-                /*if (post.Date < prev)
-                    break;*/
                 post.Load();
                 post.Categories = GetMentions(mentions, post.Title + " " + post.Details);
                 JobPost post1 = post;
@@ -112,8 +103,6 @@ namespace SVIndex
             }
             Dispatcher.BeginInvoke(new Action(() => sender.IsEnabled = true));
         }
-
-        private IEnumerable<SVIndexInfo> svIndices;
 
         private void ExportClick(object sender, RoutedEventArgs e)
         {
@@ -126,17 +115,33 @@ namespace SVIndex
 
             var total = output.Sum(i => i.Value);
             int position = 1;
+
             svIndices = new List<SVIndexInfo>(output.Select(i => new SVIndexInfo
             {
+                Id = string.Format("{0}-{1}", GetCurrentId(), i.Key),
                 Position = position++,
                 Language = i.Key,
                 Mentions = i.Value,
                 Index = (double)i.Value / total
             }));
 
+            var prevIndicis = db.GetCollection<SVIndexByMonth>("SVIndexByMonth").FindOne(new QueryDocument("_id", GetPrevId()));
+
+            if (prevIndicis != null)
+            {
+                foreach (var index in svIndices)
+                {
+                    var prevIndex = prevIndicis.SVIndices.FirstOrDefault(i => i.Language == index.Language);
+                    if (prevIndex != null)
+                    {
+                        index.Delta = index.Index - prevIndex.Index;
+                    }
+                }
+            }
+
             using (var writer = new StreamWriter("out.csv"))
             {
-                writer.WriteLine("\"Позиция\"\tЕзик за Програмиране\"\t\"Срещания\"\t\"SV Index\"");
+                writer.WriteLine("\"Позиция\"\tЕзик за Програмиране\"\t\"Срещания\"\t\"SV Index\"\t\"Изменение\"");
 
                 foreach (var i in svIndices)
                 {
@@ -150,10 +155,20 @@ namespace SVIndex
         {
             var indexByMonth = new SVIndexByMonth
             {
-                Month = DateTime.Now.Month,
+                Id = GetCurrentId(),
                 SVIndices = svIndices
             };
             db.GetCollection<SVIndexByMonth>("SVIndexByMonth").Save(indexByMonth);
+        }
+
+        private static string GetCurrentId()
+        {
+            return DateTime.Now.ToString("yyyy-M");
+        }
+
+        private static string GetPrevId()
+        {
+            return DateTime.Now.Subtract(TimeSpan.FromDays(30)).ToString("yyyy-M");
         }
     }
 }
