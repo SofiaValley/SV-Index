@@ -6,7 +6,7 @@ using System.Net;
 using System.Text;
 using HtmlAgilityPack;
 
-namespace SV_PLI.Crawlers
+namespace SVIndex.Crawlers
 {
     public class JobPost
     {

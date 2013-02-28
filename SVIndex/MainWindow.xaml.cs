@@ -4,23 +4,23 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using SV_PLI.Crawlers;
-using SV_PLI.Persistence;
+using MongoDB.Driver;
+using SVIndex.Crawlers;
+using SVIndex.Persistence;
 
-namespace SV_PLI
+namespace SVIndex
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
-        readonly ObservableCollection<JobPost> _posts;
+        readonly ObservableCollection<JobPost> posts;
 
-        private readonly List<Mention> _mentions = new List<Mention>
+        private readonly List<Mention> mentions = new List<Mention>
                                               {
                                                   new Mention(@"\bjava\b(?!\s*script)", "Java"),
                                                   new Mention(@"\bc\#", "C#"),
@@ -35,17 +35,8 @@ namespace SV_PLI
                                                   new Mention(@"\bjava\s*script\b", "JavaScript"),
                                                   new Mention(@"\bdelphi\b", "Delphi"),
                                               };
-        /*private List<string> _languages = new List<string>
-        {
-            "java",
-            "c#",
-            "c++",
-            "php",
-            "python",
-            "ruby",
-            "objective-c",
-            "javascript"
-        };*/
+
+        private readonly MongoDatabase db;
 
         public static string[] GetMentions(IEnumerable<Mention> mentions, string text)
         {
@@ -56,38 +47,42 @@ namespace SV_PLI
         {
             InitializeComponent();
 
-            IEnumerable<JobPost> jobPosts = new JobPost[0];
-            if (File.Exists("posts.db3"))
-            {
-                jobPosts = JobPostExtensions.Read("posts.db3")
-                                            /*.Where(
-                                                p =>
-                                                (p.Date >= new DateTime(2013, 1, 1)) && (p.Date < new DateTime(2013, 2, 1)))*/;
-                foreach (JobPost post in jobPosts)
-                {
-                    post.Categories = GetMentions(_mentions, post.Title + " " + post.Details);
-                }
-            }
-            //var filteredJobPosts = jobPosts.Where(p => !_mentions.Any(m => m.Regex.IsMatch(p.Title + " " + p.Details)));
-            _posts = new ObservableCollection<JobPost>(jobPosts);
-            _posts.CollectionChanged += PostsCollectionChanged;
-            listBox.ItemsSource = _posts; //monthIndex;
+            this.db = JobPostExtensions.OpenDatabase();
+
+            posts = new ObservableCollection<JobPost>();
+
+            this.LoadPostsAsync();
+            posts.CollectionChanged += PostsCollectionChanged;
+            listBox.ItemsSource = posts; //monthIndex;
         }
 
-        void PostsCollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        private void LoadPostsAsync()
         {
-            if (_posts.Count <= 0)
+            Task.Factory.StartNew(() =>
+                {
+                    var jobPosts = this.db.GetPosts()
+                        /*.Where(
+                            p =>
+                            (p.Date >= new DateTime(2013, 1, 1)) && (p.Date < new DateTime(2013, 2, 1)))*/;
+                    foreach (JobPost post in jobPosts)
+                    {
+                        post.Categories = GetMentions(mentions, post.Title + " " + post.Details);
+                        this.Dispatcher.BeginInvoke(new Action(() => this.posts.Add(post)));
+                    }
+
+                });
+            //var filteredJobPosts = jobPosts.Where(p => !_mentions.Any(m => m.Regex.IsMatch(p.Title + " " + p.Details)));
+        }
+
+        private void PostsCollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (posts.Count <= 0)
                 return;
 
-            int selectedIndex = _posts.Count - 1;
+            int selectedIndex = posts.Count - 1;
             listBox.SelectedIndex = selectedIndex;
 
-            StatusText.Content = String.Format("Total job posts: {0}, Failed {1}", _posts.Count(), _posts.Count(p=>p.IsFailed));
-        }
-
-        private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
-        {
-
+            StatusText.Content = String.Format("Total job posts: {0}, Failed {1}", posts.Count(), posts.Count(p => p.IsFailed));
         }
 
         private void JobsbgClick(object sender, RoutedEventArgs e)
@@ -100,8 +95,8 @@ namespace SV_PLI
         {
             Dispatcher.BeginInvoke(new Action(() => sender.IsEnabled = false));
 
-            Dispatcher.BeginInvoke(new Action(() => _posts.Clear()));
-            var connection = JobPostExtensions.OpenDatabase("posts.db3");
+            Dispatcher.BeginInvoke(new Action(() => posts.Clear()));
+            this.db.DropDatabase();
             var crawler = new JobsBgCrawler();
             //DateTime prev = DateTime.Today.AddDays((DateTime.Today.Day - 1) * -1);
             foreach (JobPost post in crawler.GetAllPosts())
@@ -109,52 +104,56 @@ namespace SV_PLI
                 /*if (post.Date < prev)
                     break;*/
                 post.Load();
-                post.Categories = GetMentions(_mentions, post.Title + " " + post.Details);
+                post.Categories = GetMentions(mentions, post.Title + " " + post.Details);
                 JobPost post1 = post;
-                Dispatcher.BeginInvoke(new Action(() => _posts.Add(post1)));
-                post1.Write(connection);
+                Dispatcher.BeginInvoke(new Action(() => posts.Add(post1)));
+                this.db.AddPost(post1);
                 Application.Current.DoEvents();
             }
-            connection.Close();
             Dispatcher.BeginInvoke(new Action(() => sender.IsEnabled = true));
         }
 
+        private IEnumerable<SVIndexInfo> svIndices;
+
         private void ExportClick(object sender, RoutedEventArgs e)
         {
-            var boo =
-                _posts.SelectMany(p => p.Categories)
+            var output =
+                posts.SelectMany(p => p.Categories)
                       .GroupBy(s => s)
                       .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
-                      .OrderByDescending(k=>k.Value)
+                      .OrderByDescending(k => k.Value)
                       .ToArray();
+
+            var total = output.Sum(i => i.Value);
+            int position = 1;
+            svIndices = new List<SVIndexInfo>(output.Select(i => new SVIndexInfo
+            {
+                Position = position++,
+                Language = i.Key,
+                Mentions = i.Value,
+                Index = (double)i.Value / total
+            }));
+
             using (var writer = new StreamWriter("out.csv"))
             {
-                writer.WriteLine("\"tech\"\t\"count\"");
-                foreach (var keyValuePair in boo)
+                writer.WriteLine("\"Позиция\"\tЕзик за Програмиране\"\t\"Срещания\"\t\"SV Index\"");
+
+                foreach (var i in svIndices)
                 {
-                    writer.WriteLine("\"{0}\"\t{1}", keyValuePair.Key, keyValuePair.Value);
+                    writer.WriteLine("{0}\t\"{1}\"\t{2}\t{3:P}", i.Position, i.Language, i.Mentions, i.Index);
                 }
             }
             Process.Start("out.csv");
         }
-    }
 
-    public class Mention
-    {
-        public Mention()
+        private void PreserveClick(object sender, RoutedEventArgs e)
         {
+            var indexByMonth = new SVIndexByMonth
+            {
+                Month = DateTime.Now.Month,
+                SVIndices = svIndices
+            };
+            db.GetCollection<SVIndexByMonth>("SVIndexByMonth").Save(indexByMonth);
         }
-
-        public Mention(string regex, string technology)
-        {
-            Technology = technology;
-            Regex =
-                new Regex(regex,
-                          RegexOptions.IgnoreCase |
-                          RegexOptions.Compiled);
-        }
-
-        public Regex Regex { get; set; }
-        public string Technology { get; set; }
     }
 }

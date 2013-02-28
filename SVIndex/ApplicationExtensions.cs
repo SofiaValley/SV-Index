@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Threading;
 
-namespace SV_PLI
+namespace SVIndex
 {
     public static class ApplicationExtensions
     {

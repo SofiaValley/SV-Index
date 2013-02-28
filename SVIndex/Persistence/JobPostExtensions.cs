@@ -1,75 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Common;
-using System.Data.SQLite;
-using System.IO;
-using SV_PLI.Crawlers;
-using Dapper;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
+using SVIndex.Crawlers;
 
-namespace SV_PLI.Persistence
+namespace SVIndex.Persistence
 {
     public static class JobPostExtensions
     {
-        public static SQLiteConnection OpenDatabase(string fileName)
+        public class DbSettings
         {
-            SQLiteConnection connection;
-            if (File.Exists(fileName))
-            {
-                connection = new SQLiteConnection(String.Format("Data Source={0}", fileName));
-                connection.Open();    
-            }
-            else
-            {
-                connection = new SQLiteConnection(String.Format("Data Source={0}", fileName));
-                connection.Open();
-                connection.Execute(
-                    "CREATE TABLE post(post_id TEXT PRIMARY KEY, external BOOL, failed BOOL, ref_no TEXT, date DATE, categories TEXT, job_type TEXT, level TEXT, employment_type TEXT, title TEXT, details TEXT, location TEXT, organization TEXT, zaplata TEXT)");                
-            }
-
-            return connection;
+            public int Month { get; set; }
         }
 
-        public static void Write(this JobPost post, DbConnection connection)
+        private const string PostsName = "posts";
+
+        public static string GetDatabaseName()
         {
-            connection.Execute(
-                @"INSERT OR REPLACE INTO post(post_id, external, failed, ref_no, date, title, details, location, organization, zaplata) 
-                    VALUES (@Id, @IsExternal, @IsFailed, @RefNo, @Date, @Title, @Details, @Location, @Organisation, @Zaplata)",
-                new
-                    {
-                        post.Id,
-                        post.IsExternal,
-                        post.IsFailed,
-                        post.RefNo,
-                        post.Date,
-                        post.Title,
-                        post.Details,
-                        post.Location,
-                        post.Organisation,
-                        post.Zaplata
-                    });
+            return string.Format("posts-{0}", DateTime.Now.Month);
         }
 
-        public static IEnumerable<JobPost> Read(string fileName)
+        public static MongoDatabase OpenDatabase()
         {
-            using (var connection = new SQLiteConnection(String.Format("Data Source={0}", fileName)))
-            {
-                connection.Open();
-                return connection.Query<JobPost>(@"SELECT post_id AS Id, 
-external AS IsExternal, 
-failed AS IsFailed, 
-ref_no AS RefNo, 
-date as Date, 
-categories AS Categories, 
-job_type AS JobType, 
-level AS Level, 
-employment_type AS EmploymentType, 
-title AS Title, 
-details AS Details, 
-location AS Location, 
-organization AS Organisation, 
-zaplata AS Zaplata
-FROM post");
-            }
+            var connectionString = "mongodb://SVIndex:Asdf1234@ds053317.mongolab.com:53317/sv-index";
+            var client = new MongoClient(connectionString);
+            var server = client.GetServer();
+
+            var db = server.GetDatabase("sv-index");
+
+            return db;
+        }
+
+        public static void DropDatabase(this MongoDatabase db)
+        {
+            db.DropCollection(PostsName);
+        }
+
+        public static void AddPost(this MongoDatabase db, JobPost post)
+        {
+            var posts = db.GetCollection<JobPost>(PostsName);
+            posts.Save(post);
+        }
+
+        public static IEnumerable<JobPost> GetPosts(this MongoDatabase db)
+        {
+            return db.GetCollection<JobPost>(PostsName).AsQueryable();
         }
     }
 }
