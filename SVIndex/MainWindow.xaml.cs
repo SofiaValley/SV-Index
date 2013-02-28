@@ -145,7 +145,7 @@ namespace SVIndex
 
                 foreach (var i in svIndices)
                 {
-                    writer.WriteLine("{0}\t\"{1}\"\t{2}\t{3:P}", i.Position, i.Language, i.Mentions, i.Index);
+                    writer.WriteLine("{0}\t\"{1}\"\t{2}\t{3:P}\t{4:P}", i.Position, i.Language, i.Mentions, i.Index, i.Delta);
                 }
             }
             Process.Start("out.csv");
