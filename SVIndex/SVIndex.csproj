@@ -63,6 +63,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DelegateCommand.cs" />
     <Compile Include="Mention.cs" />
     <Compile Include="BTree\SimpleTokenizer.cs" />
     <Compile Include="SVIndexInfo.cs" />
@@ -75,7 +76,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ApplicationExtensions.cs" />
     <Compile Include="BTree\BTree.cs" />
     <Compile Include="BTree\BTreeExtensions.cs" />
     <Compile Include="Crawlers\JobPost.cs" />
