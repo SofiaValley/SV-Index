@@ -1,5 +1,6 @@
 using System.Collections.Generic;
-namespace SVIndex
+
+namespace SVIndex.ViewModels
 {
     public class SVIndexByMonth
     {

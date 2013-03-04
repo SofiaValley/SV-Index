@@ -12,35 +12,44 @@
             <Button Content="Preserve Index" Command="{Binding PreserveCommand}" Margin="10" />
         </StackPanel>
 
-        <DataGrid Grid.Row="1" HorizontalContentAlignment="Stretch" ItemsSource="{Binding Posts}"
-                AutoGenerateColumns="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Binding="{Binding Date, StringFormat=yyyy/MM/dd}" />
-                <DataGridTemplateColumn>
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <ItemsControl ItemsSource="{Binding Categories}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTemplateColumn>
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Expander HorizontalContentAlignment="Stretch">
-                                <Expander.Header>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Title}" FontWeight="Black" Margin="4" />
-                                        <TextBlock Text="{Binding Organisation}" Margin="4" />
-                                    </StackPanel>
-                                </Expander.Header>
-                                <TextBlock TextWrapping="Wrap" MaxWidth="400" Text="{Binding Details}" Margin="4" />
-                            </Expander>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
-        
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <DataGrid ItemsSource="{Binding Posts}" AutoGenerateColumns="False" ScrollViewer.CanContentScroll="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding Id}" Width="50" />
+                    <DataGridTextColumn Binding="{Binding Date, StringFormat=yyyy/MM/dd}" />
+                    <DataGridTemplateColumn>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ItemsControl ItemsSource="{Binding Categories}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Expander HorizontalContentAlignment="Stretch">
+                                    <Expander.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Title}" FontWeight="Black" Margin="4" />
+                                            <TextBlock Text="{Binding Organisation}" Margin="4" />
+                                        </StackPanel>
+                                    </Expander.Header>
+                                    <TextBlock TextWrapping="Wrap" MaxWidth="400" Text="{Binding Details}" Margin="4" />
+                                </Expander>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            <GridSplitter Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Center" Width="8" />
+            <DataGrid ItemsSource="{Binding SVIndices}" AutoGenerateColumns="True" Grid.Column="2" />
+        </Grid>
+
         <StatusBar Grid.Row="2" x:Name="Statusbar1">
             <StatusBarItem Content="{Binding StatusText}" />
         </StatusBar>

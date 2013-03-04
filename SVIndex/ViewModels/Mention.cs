@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SVIndex
+namespace SVIndex.ViewModels
 {
     public class Mention
     {

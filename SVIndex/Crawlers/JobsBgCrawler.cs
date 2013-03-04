@@ -43,7 +43,7 @@ namespace SVIndex.Crawlers
             Debug.WriteLine("Opening page {0}", page);
 
             var document = new HtmlDocument();
-            
+
             using (var stream = client.OpenRead(String.Format(Url, (page * 20))))
             {
                 document.Load(stream, Encoding.UTF8);
@@ -55,7 +55,7 @@ namespace SVIndex.Crawlers
             var retVal = new List<JobPost>();
             var rowNode = document.DocumentNode.SelectSingleNode(@"//td[@class='offerslistRow']/..");
             while (rowNode != null)
-                {
+            {
                 string date = rowNode.SelectSingleNode("./td[1]").InnerText;
                 var pos = rowNode.SelectSingleNode("./td[3]/a");
                 string href = pos.Attributes["href"].Value;

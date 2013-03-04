@@ -1,20 +1,19 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using SVIndex.Crawlers;
 using SVIndex.Persistence;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.ComponentModel;
 using System.IO;
-using System.Diagnostics;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SVIndex
+namespace SVIndex.ViewModels
 {
-    public class MainViewModel : INotifyPropertyChanged
+    public class MainViewModel : ViewModelBase
     {
+        private const string DateFormat = "yyyy-M";
         private readonly ObservableCollection<JobPost> posts;
         private readonly MongoDatabase db;
         private IEnumerable<SVIndexInfo> svIndices;
@@ -43,7 +42,7 @@ namespace SVIndex
 
             this.LoadPostsAsync();
 
-            this.RunCrawlerCommand = new DelegateCommand((_) => this.RunCrawler(), (_) => !isCrawlerRunning);
+            this.RunCrawlerCommand = new DelegateCommand((_) => this.RunCrawlerAsync(), (_) => !isCrawlerRunning);
             this.ExportCommand = new DelegateCommand((_) => this.Export());
             this.PreserveCommand = new DelegateCommand((_) => this.Preserve());
         }
@@ -72,6 +71,22 @@ namespace SVIndex
             }
         }
 
+        public IEnumerable<SVIndexInfo> SVIndices
+        {
+            get
+            {
+                return this.svIndices;
+            }
+            private set
+            {
+                if (this.svIndices != value)
+                {
+                    this.svIndices = value;
+                    OnPropertyChanged("SVIndices");
+                }
+            }
+        }
+
         public DelegateCommand RunCrawlerCommand
         {
             get;
@@ -92,15 +107,17 @@ namespace SVIndex
 
         private void LoadPostsAsync()
         {
-            Task.Factory.StartNew(() =>
+            Task.Factory.StartNew(() => LoadPosts(), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        }
+
+        private void LoadPosts()
+        {
+            var jobPosts = this.db.GetPosts();
+            foreach (JobPost post in jobPosts)
             {
-                var jobPosts = this.db.GetPosts();
-                foreach (JobPost post in jobPosts)
-                {
-                    post.Categories = GetMentions(mentions, post.Title + " " + post.Details);
-                    AddPost(post);
-                }
-            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                post.Categories = GetMentions(mentions, post.Title + " " + post.Details);
+                AddPost(post);
+            }
         }
 
         private void AddPost(JobPost post)
@@ -112,14 +129,14 @@ namespace SVIndex
                 }));
         }
 
-        private void RunCrawler()
+        private void RunCrawlerAsync()
         {
             this.isCrawlerRunning = true;
             posts.Clear();
-            Task.Factory.StartNew(() => RunCrawlerAsync(), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).ContinueWith((_) => this.isCrawlerRunning = false);
+            Task.Factory.StartNew(() => RunCrawler(), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).ContinueWith((_) => this.isCrawlerRunning = false);
         }
 
-        private void RunCrawlerAsync()
+        private void RunCrawler()
         {
             this.db.DropDatabase();
             var crawler = new JobsBgCrawler();
@@ -145,7 +162,7 @@ namespace SVIndex
             var total = output.Sum(i => i.Value);
             int position = 1;
 
-            svIndices = new List<SVIndexInfo>(output.Select(i => new SVIndexInfo
+            this.SVIndices = new List<SVIndexInfo>(output.Select(i => new SVIndexInfo
             {
                 Id = string.Format("{0}-{1}", GetCurrentId(), i.Key),
                 Position = position++,
@@ -154,13 +171,13 @@ namespace SVIndex
                 Index = (double)i.Value / total
             }));
 
-            var prevIndicis = db.GetCollection<SVIndexByMonth>("SVIndexByMonth").FindOne(new QueryDocument("_id", GetPrevId()));
+            var prevIndices = db.GetCollection<SVIndexByMonth>("SVIndexByMonth").FindOne(new QueryDocument("_id", GetPrevId()));
 
-            if (prevIndicis != null)
+            if (prevIndices != null)
             {
-                foreach (var index in svIndices)
+                foreach (var index in this.SVIndices)
                 {
-                    var prevIndex = prevIndicis.SVIndices.FirstOrDefault(i => i.Language == index.Language);
+                    var prevIndex = prevIndices.SVIndices.FirstOrDefault(i => i.Language == index.Language);
                     if (prevIndex != null)
                     {
                         index.Delta = index.Index - prevIndex.Index;
@@ -172,12 +189,11 @@ namespace SVIndex
             {
                 writer.WriteLine("\"Позиция\"\tЕзик за Програмиране\"\t\"Срещания\"\t\"SV Index\"\t\"Изменение\"");
 
-                foreach (var i in svIndices)
+                foreach (var i in this.SVIndices)
                 {
                     writer.WriteLine("{0}\t\"{1}\"\t{2}\t{3:P}\t{4:P}", i.Position, i.Language, i.Mentions, i.Index, i.Delta);
                 }
             }
-            Process.Start("out.csv");
         }
 
         private void Preserve()
@@ -185,7 +201,7 @@ namespace SVIndex
             var indexByMonth = new SVIndexByMonth
             {
                 Id = GetCurrentId(),
-                SVIndices = svIndices
+                SVIndices = this.SVIndices
             };
             db.GetCollection<SVIndexByMonth>("SVIndexByMonth").Save(indexByMonth);
         }
@@ -197,22 +213,12 @@ namespace SVIndex
 
         private static string GetCurrentId()
         {
-            return DateTime.Now.ToString("yyyy-M");
+            return DateTime.Now.ToString(DateFormat);
         }
 
         private static string GetPrevId()
         {
-            return DateTime.Now.Subtract(TimeSpan.FromDays(30)).ToString("yyyy-M");
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            if (this.PropertyChanged != null)
-            {
-                this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            return DateTime.Now.Subtract(TimeSpan.FromDays(30)).ToString(DateFormat);
         }
     }
 }
