@@ -19,7 +19,7 @@ namespace SVIndex.ViewModels
         private IEnumerable<SVIndexInfo> svIndices;
         private string statusText;
         private bool isCrawlerRunning;
-        private readonly List<Mention> mentions = new List<Mention>
+        private static readonly List<Mention> mentions = new List<Mention>
                                               {
                                                   new Mention(@"\bjava\b(?!\s*script)", "Java"),
                                                   new Mention(@"\bc\#", "C#"),
@@ -40,11 +40,10 @@ namespace SVIndex.ViewModels
             this.db = JobPostExtensions.OpenDatabase();
             this.posts = new ObservableCollection<JobPost>();
 
-            this.LoadPostsAsync();
-
             this.RunCrawlerCommand = new DelegateCommand((_) => this.RunCrawlerAsync(), (_) => !isCrawlerRunning);
             this.ExportCommand = new DelegateCommand((_) => this.Export());
             this.PreserveCommand = new DelegateCommand((_) => this.Preserve());
+            this.LoadPostsCommand = new DelegateCommand((_) => this.LoadPostsAsync());
         }
 
         public string StatusText
@@ -105,9 +104,15 @@ namespace SVIndex.ViewModels
             private set;
         }
 
+        public DelegateCommand LoadPostsCommand
+        {
+            get;
+            private set;
+        }
+
         private void LoadPostsAsync()
         {
-            Task.Factory.StartNew(() => LoadPosts(), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Task.Factory.StartNew(() => LoadPosts(), CancellationToken.None, TaskCreationOptions.AttachedToParent, TaskScheduler.Default);
         }
 
         private void LoadPosts()
@@ -115,8 +120,8 @@ namespace SVIndex.ViewModels
             var jobPosts = this.db.GetPosts();
             foreach (JobPost post in jobPosts)
             {
-                post.Categories = GetMentions(mentions, post.Title + " " + post.Details);
-                AddPost(post);
+                post.Categories = GetCategories(post);
+                this.AddPost(post);
             }
         }
 
@@ -133,17 +138,26 @@ namespace SVIndex.ViewModels
         {
             this.isCrawlerRunning = true;
             posts.Clear();
-            Task.Factory.StartNew(() => RunCrawler(), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).ContinueWith((_) => this.isCrawlerRunning = false);
+            Task.Factory.StartNew(() => RunCrawler(), CancellationToken.None, TaskCreationOptions.AttachedToParent, TaskScheduler.Default).ContinueWith((_) => this.isCrawlerRunning = false);
         }
 
         private void RunCrawler()
         {
             this.db.DropDatabase();
             var crawler = new JobsBgCrawler();
+            //crawler.PostCreated += (_, e) =>
+            //    {
+            //        var post = e.Post;
+            //        post.Categories = GetCategories(post);
+            //        JobPost post1 = post;
+            //        this.db.AddPost(post1);
+            //        this.AddPost(post1);
+            //    };
+            //crawler.GetAllPosts();
+
             foreach (JobPost post in crawler.GetAllPosts())
             {
-                post.Load();
-                post.Categories = GetMentions(mentions, post.Title + " " + post.Details);
+                post.Categories = GetCategories(post);
                 JobPost post1 = post;
                 this.db.AddPost(post1);
                 this.AddPost(post1);
@@ -206,8 +220,9 @@ namespace SVIndex.ViewModels
             db.GetCollection<SVIndexByMonth>("SVIndexByMonth").Save(indexByMonth);
         }
 
-        private static string[] GetMentions(IEnumerable<Mention> mentions, string text)
+        private static string[] GetCategories(JobPost post)
         {
+            var text = post.Title + " " + post.Details;
             return mentions.Where(m => m.Regex.IsMatch(text)).Select(m => m.Technology).ToArray();
         }
 

@@ -7,6 +7,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal">
+            <Button Content="Load Posts" Command="{Binding LoadPostsCommand}" Margin="10" />
             <Button Content="Run Crawler" Command="{Binding RunCrawlerCommand}" Margin="10" />
             <Button Content="Export Index" Command="{Binding ExportCommand}" Margin="10" />
             <Button Content="Preserve Index" Command="{Binding PreserveCommand}" Margin="10" />
