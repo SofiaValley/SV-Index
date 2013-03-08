@@ -1,4 +1,4 @@
-﻿namespace SVIndex
+﻿namespace SVIndex.BTree
 {
     public class TreeWalker
     {

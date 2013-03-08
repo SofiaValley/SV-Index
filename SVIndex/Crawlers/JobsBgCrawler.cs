@@ -7,7 +7,6 @@ using System.Text;
 using HtmlAgilityPack;
 using System.Web.Script.Serialization;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace SVIndex.Crawlers
 {
@@ -21,23 +20,9 @@ namespace SVIndex.Crawlers
 
         public int Total { get; private set; }
 
-        public event EventHandler<PostEventArgs> PostCreated;
-
         public IEnumerable<JobPost> GetAllPosts()
         {
             var pages = this.GetPageCount();
-            //Parallel.For(0, pages, new Action<int>((page) =>
-            //    {
-            //        var results = GetPage(page);
-            //        foreach (JobPost post in results)
-            //        {
-            //            if (this.PostCreated != null)
-            //            {
-            //                this.PostCreated(this, new PostEventArgs { Post = post });
-            //            }
-            //        }
-            //    }));
-
             for (int page = 0; page < pages; page++)
             {
                 var results = GetPage(page);
@@ -113,47 +98,6 @@ namespace SVIndex.Crawlers
             }
 
             return post;
-
-            //WebClient client = new WebClient();
-            //HtmlDocument document = new HtmlDocument();
-            //using (var stream = client.OpenRead(post.Url))
-            //{
-            //    document.Load(stream);
-            //}
-
-            //var detailDescriptions =
-            //    document.DocumentNode.SelectNodes(@"//td[@class='jobDataView']/../td[1]");
-
-            //var detailElements =
-            //    document.DocumentNode.SelectNodes(@"//td[@class='jobDataView']/../td[2]");
-
-            //if (detailElements == null)
-            //{
-            //    post.IsFailed = true;
-            //    return;
-            //}
-
-            //var texts = detailElements.Select(e => e.InnerText.Trim()).ToArray();
-            //var descriptions = detailDescriptions.Select(e => e.InnerText.Trim()).ToArray();
-
-            //Debug.Assert(texts.Length == descriptions.Length);
-
-            //for (int i = 0; i < texts.Length; i++)
-            //{
-            //    if (descriptions[i] == "Ref.No:")
-            //        post.RefNo = texts[i];
-            //    else if (descriptions[i] == "Описание иИзисквания:")
-            //        post.Details = texts[i];
-            //    else if (descriptions[i] == "Месторабота:")
-            //        post.Location = texts[i];
-            //    else if (descriptions[i] == "Заплата:")
-            //        post.Salary = texts[i];
-            //    else if (descriptions[i] == "Организация:")
-            //        ;
-            //    //Organisation = texts[i];
-            //    else
-            //        Debug.Assert(false);
-            //}
         }
 
         //private static JobPost CreateNReadabilityPost(string id, string date, string title, string company)
@@ -175,27 +119,27 @@ namespace SVIndex.Crawlers
         //    return post;
         //}
 
-        private static JobPost CreateParserPost(string id, string date, string title, string company)
-        {
-            var post = new JobPost(id, date, title, company);
+        //private static JobPost CreateParserPost(string id, string date, string title, string company)
+        //{
+        //    var post = new JobPost(id, date, title, company);
 
-            var articleUrl = string.Format("https://readability.com/api/content/v1/parser?url={0}&token=8bd4b5dccf76253c6b9de2bf0ef88412e62f1dc2", post.Url);
-            var client = new WebClient();
-            using (var articleStream = client.OpenRead(articleUrl))
-            {
-                using (var reader = new StreamReader(articleStream))
-                {
-                    JavaScriptSerializer serializer = new JavaScriptSerializer();
-                    var article = serializer.DeserializeObject(reader.ReadToEnd()) as Dictionary<string, object>;
-                    var response = (Dictionary<string, object>)article["response"];
-                    title = response["title"].ToString();
-                    var content = response["content"].ToString();
-                    post.Details = content;
-                }
-            }
+        //    var articleUrl = string.Format("https://readability.com/api/content/v1/parser?url={0}&token=8bd4b5dccf76253c6b9de2bf0ef88412e62f1dc2", post.Url);
+        //    var client = new WebClient();
+        //    using (var articleStream = client.OpenRead(articleUrl))
+        //    {
+        //        using (var reader = new StreamReader(articleStream))
+        //        {
+        //            JavaScriptSerializer serializer = new JavaScriptSerializer();
+        //            var article = serializer.DeserializeObject(reader.ReadToEnd()) as Dictionary<string, object>;
+        //            var response = (Dictionary<string, object>)article["response"];
+        //            title = response["title"].ToString();
+        //            var content = response["content"].ToString();
+        //            post.Details = content;
+        //        }
+        //    }
 
-            return post;
-        }
+        //    return post;
+        //}
 
         private static HtmlNode GetNextNode(HtmlNode node, string nodeName)
         {
@@ -209,10 +153,5 @@ namespace SVIndex.Crawlers
                 return nextSibling;
             return GetNextNode(nextSibling, nodeName);
         }
-    }
-
-    public class PostEventArgs : EventArgs
-    {
-        public JobPost Post { get; set; }
     }
 }

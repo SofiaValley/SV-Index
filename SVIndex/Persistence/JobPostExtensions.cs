@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using SVIndex.Crawlers;
+using SVIndex.ViewModels;
 
 namespace SVIndex.Persistence
 {
@@ -45,6 +46,11 @@ namespace SVIndex.Persistence
         public static IEnumerable<JobPost> GetPosts(this MongoDatabase db)
         {
             return db.GetCollection<JobPost>(PostsName).AsQueryable();
+        }
+
+        public static void Preserve(this MongoDatabase db, SVIndexByMonth indexByMonth)
+        {
+            db.GetCollection<SVIndexByMonth>("SVIndexByMonth").Save(indexByMonth);
         }
     }
 }

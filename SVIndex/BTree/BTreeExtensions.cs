@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SVIndex
+namespace SVIndex.BTree
 {
     public static class BTreeExtensions
     {

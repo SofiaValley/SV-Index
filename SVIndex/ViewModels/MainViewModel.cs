@@ -15,6 +15,7 @@ namespace SVIndex.ViewModels
     {
         private const string DateFormat = "yyyy-M";
         private readonly ObservableCollection<JobPost> posts;
+        private Dictionary<string, int> words;
         private readonly MongoDatabase db;
         private IEnumerable<SVIndexInfo> svIndices;
         private string statusText;
@@ -35,6 +36,22 @@ namespace SVIndex.ViewModels
                                                   new Mention(@"\bdelphi\b", "Delphi"),
                                               };
 
+        public Dictionary<string, int> Words
+        {
+            get
+            {
+                return this.words;
+            }
+            set
+            {
+                if (this.words != value)
+                {
+                    this.words = value;
+                    OnPropertyChanged("Words");
+                }
+            }
+        }
+
         public MainViewModel()
         {
             this.db = JobPostExtensions.OpenDatabase();
@@ -44,6 +61,7 @@ namespace SVIndex.ViewModels
             this.ExportCommand = new DelegateCommand((_) => this.Export());
             this.PreserveCommand = new DelegateCommand((_) => this.Preserve());
             this.LoadPostsCommand = new DelegateCommand((_) => this.LoadPostsAsync());
+            this.WordCountCommand = new DelegateCommand((_) => this.WordCount());
         }
 
         public string StatusText
@@ -110,6 +128,18 @@ namespace SVIndex.ViewModels
             private set;
         }
 
+        public DelegateCommand WordCountCommand
+        {
+            get;
+            private set;
+        }
+
+        private void WordCount()
+        {
+            this.Words = WordCounter.CountWords(this.Posts.Select(x => x.Details));
+            //this.Words = WordCounter.CountWordsExtended(this.Posts.Select(x => x.Details));
+        }
+
         private void LoadPostsAsync()
         {
             Task.Factory.StartNew(() => LoadPosts(), CancellationToken.None, TaskCreationOptions.AttachedToParent, TaskScheduler.Default);
@@ -145,16 +175,6 @@ namespace SVIndex.ViewModels
         {
             this.db.DropDatabase();
             var crawler = new JobsBgCrawler();
-            //crawler.PostCreated += (_, e) =>
-            //    {
-            //        var post = e.Post;
-            //        post.Categories = GetCategories(post);
-            //        JobPost post1 = post;
-            //        this.db.AddPost(post1);
-            //        this.AddPost(post1);
-            //    };
-            //crawler.GetAllPosts();
-
             foreach (JobPost post in crawler.GetAllPosts())
             {
                 post.Categories = GetCategories(post);
@@ -217,7 +237,7 @@ namespace SVIndex.ViewModels
                 Id = GetCurrentId(),
                 SVIndices = this.SVIndices
             };
-            db.GetCollection<SVIndexByMonth>("SVIndexByMonth").Save(indexByMonth);
+            db.Preserve(indexByMonth);
         }
 
         private static string[] GetCategories(JobPost post)

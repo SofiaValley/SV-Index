@@ -64,6 +64,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Crawlers\WordCounter.cs" />
+    <Compile Include="TFIDF\NGram.cs" />
+    <Compile Include="TFIDF\PorterStemmer.cs" />
+    <Compile Include="TFIDF\StopWordsHandler.cs" />
+    <Compile Include="TFIDF\TFIDFMeasure.cs" />
+    <Compile Include="TFIDF\Tokeniser.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\Mention.cs" />
     <Compile Include="BTree\SimpleTokenizer.cs" />
@@ -117,6 +123,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="terms.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

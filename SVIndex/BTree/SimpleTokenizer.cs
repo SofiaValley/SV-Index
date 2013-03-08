@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SVIndex
+namespace SVIndex.BTree
 {
     public class SimpleTokenizer : ITokenizer
     {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SVIndex
+namespace SVIndex.BTree
 {
     public interface ITokenizer
     {
