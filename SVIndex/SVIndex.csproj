@@ -34,8 +34,29 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="boilerpipe-1.2.0">
+      <HintPath>Binaries\boilerpipe-1.2.0.dll</HintPath>
+    </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\packages\HtmlAgilityPack.1.4.6\lib\Net45\HtmlAgilityPack.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Core">
+      <HintPath>Binaries\IKVM.OpenJDK.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Jdbc">
+      <HintPath>Binaries\IKVM.OpenJDK.Jdbc.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Text">
+      <HintPath>Binaries\IKVM.OpenJDK.Text.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.Util">
+      <HintPath>Binaries\IKVM.OpenJDK.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.OpenJDK.XML.API">
+      <HintPath>Binaries\IKVM.OpenJDK.XML.API.dll</HintPath>
+    </Reference>
+    <Reference Include="IKVM.Runtime">
+      <HintPath>Binaries\IKVM.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="MongoDB.Bson">
       <HintPath>Binaries\MongoDB.Bson.dll</HintPath>
@@ -43,6 +64,9 @@
     <Reference Include="MongoDB.Driver, Version=1.7.0.4714, Culture=neutral, PublicKeyToken=f686731cfb9cc103, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>Binaries\MongoDB.Driver.dll</HintPath>
+    </Reference>
+    <Reference Include="opennlp">
+      <HintPath>Binaries\opennlp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -64,12 +88,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Boilerpipe\BoilerPipe.cs" />
+    <Compile Include="Boilerpipe\IExtractor.cs" />
+    <Compile Include="Boilerpipe\TestProgram.cs" />
     <Compile Include="Crawlers\WordCounter.cs" />
-    <Compile Include="TFIDF\NGram.cs" />
-    <Compile Include="TFIDF\PorterStemmer.cs" />
-    <Compile Include="TFIDF\StopWordsHandler.cs" />
-    <Compile Include="TFIDF\TFIDFMeasure.cs" />
-    <Compile Include="TFIDF\Tokeniser.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\Mention.cs" />
     <Compile Include="BTree\SimpleTokenizer.cs" />

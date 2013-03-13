@@ -138,6 +138,22 @@ namespace SVIndex.ViewModels
         {
             this.Words = WordCounter.CountWords(this.Posts.Select(x => x.Details));
             //this.Words = WordCounter.CountWordsExtended(this.Posts.Select(x => x.Details));
+
+            this.ExportWords();
+        }
+
+        private void ExportWords()
+        {
+            using (var writer = new StreamWriter("words.txt"))
+            {
+                writer.WriteLine("[wp-word-cloud color=\"AAAAAA\"]");
+
+                foreach (var word in this.Words)
+                {
+                    writer.WriteLine("[text=\"{0}\" weight=\"{1}\"]", word.Key, word.Value);
+                }
+                writer.WriteLine("[/wp-word-cloud]");
+            }
         }
 
         private void LoadPostsAsync()
