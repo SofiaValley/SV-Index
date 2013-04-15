@@ -14,12 +14,17 @@ namespace SVIndex.ViewModels
     public class MainViewModel : ViewModelBase
     {
         private const string DateFormat = "yyyy-M";
+        private const string Separator = "\t";
         private readonly ObservableCollection<JobPost> posts;
         private Dictionary<string, int> words;
         private readonly MongoDatabase db;
         private IEnumerable<SVIndexInfo> svIndices;
         private string statusText;
         private bool isCrawlerRunning;
+        private const string upImage = "up.jpg";
+        private const string downImage = "down.jpg";
+        private const string imageUrl = "<img src=\"http://sofiavalley.com/wp-content/uploads/2013/03/{0}\" alt=\"\" width=\"16\" height=\"16\" class=\"alignnone size-full wp-image-1743\" />";
+ 
         private static readonly List<Mention> mentions = new List<Mention>
                                               {
                                                   new Mention(@"\bjava\b(?!\s*script)", "Java"),
@@ -136,7 +141,7 @@ namespace SVIndex.ViewModels
 
         private void WordCount()
         {
-            this.Words = WordCounter.CountWords(this.Posts.Select(x => x.Details));
+            this.Words = WordCounter.CountTokens(this.Posts.Select(x => x.Details));
             //this.Words = WordCounter.CountWordsExtended(this.Posts.Select(x => x.Details));
 
             this.ExportWords();
@@ -230,20 +235,25 @@ namespace SVIndex.ViewModels
                     var prevIndex = prevIndices.SVIndices.FirstOrDefault(i => i.Language == index.Language);
                     if (prevIndex != null)
                     {
-                        index.Delta = index.Index - prevIndex.Index;
+                        index.PrevIndex = prevIndex.Index;
                     }
                 }
             }
 
             using (var writer = new StreamWriter("out.csv"))
             {
-                writer.WriteLine("\"Позиция\"\tЕзик за Програмиране\"\t\"Срещания\"\t\"SV Index\"\t\"Изменение\"");
+                writer.WriteLine("Позиция{0}Език за Програмиране{0}Срещания{0}SV Index{0}Предходен Месец{0}Изменение{0}Иконка", Separator);
 
                 foreach (var i in this.SVIndices)
                 {
-                    writer.WriteLine("{0}\t\"{1}\"\t{2}\t{3:P}\t{4:P}", i.Position, i.Language, i.Mentions, i.Index, i.Delta);
+                    writer.WriteLine("{1}{0}{2}{0}{3}{0}{4:P}{0}{5:P}{0}{6:P}{0}{7}", Separator, i.Position, i.Language, i.Mentions, i.Index, i.PrevIndex, i.Delta, GetImage(i.Delta));
                 }
             }
+        }
+     
+        private static string GetImage(double delta)
+        {
+            return string.Format(imageUrl, delta > 0 ? upImage : downImage);          
         }
 
         private void Preserve()

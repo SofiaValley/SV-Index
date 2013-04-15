@@ -88,9 +88,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Boilerpipe\BoilerPipe.cs" />
-    <Compile Include="Boilerpipe\IExtractor.cs" />
-    <Compile Include="Boilerpipe\TestProgram.cs" />
+    <Compile Include="Extractor\BoilerPipe.cs" />
+    <Compile Include="Extractor\IExtractor.cs" />
+    <Compile Include="Extractor\TestProgram.cs" />
     <Compile Include="Crawlers\WordCounter.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\Mention.cs" />

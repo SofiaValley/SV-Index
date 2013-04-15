@@ -16,6 +16,13 @@ namespace SVIndex.ViewModels
         public string Language { get; set; }
         public int Mentions { get; set; }
         public double Index { get; set; }
-        public double Delta { get; set; }
+        public double PrevIndex { get; set; }
+        public double Delta
+        {
+            get
+            {
+                return this.Index - this.PrevIndex;
+            }
+        }
     }
 }

@@ -7,6 +7,7 @@ using System.Text;
 using HtmlAgilityPack;
 using System.Web.Script.Serialization;
 using System.IO;
+using SVIndex.Extractor;
 
 namespace SVIndex.Crawlers
 {
@@ -53,7 +54,7 @@ namespace SVIndex.Crawlers
                 string href = pos.Attributes["href"].Value;
                 string title = pos.InnerText;
                 string company = rowNode.SelectSingleNode("./td[5]").InnerText.Trim();
-                var post = CreatePost(href, title, date, company);
+                var post = CreatePostLocal(href, title, date, company);
                 posts.Add(post);
 
                 rowNode = GetNextNode(rowNode, "tr");
@@ -96,6 +97,14 @@ namespace SVIndex.Crawlers
                     post.Details = content;
                 }
             }
+
+            return post;
+        }
+
+        private static JobPost CreatePostLocal(string id, string date, string title, string company)
+        {
+            var post = new JobPost(id, date, title, company);
+            post.Details = BoilerPipe.ArticleExtractor.GetText(new Uri(post.Url, UriKind.Absolute));
 
             return post;
         }
