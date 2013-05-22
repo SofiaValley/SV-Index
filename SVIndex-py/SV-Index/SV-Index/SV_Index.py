@@ -3,7 +3,7 @@ import json
 import urllib
 import os
 
-class Crawler():
+class Config():
     URL = "http://it.jobs.bg/front_job_search.php?frompage={0}&str_regions=&str_locations=&tab=jobs&old_country=&country=-1&region=0&l_category%5B%5D=0&keyword=#paging"
     Step = 20
     hrefpattern = "href=\"f\d+\""
@@ -12,6 +12,7 @@ class Crawler():
     filename = "hrefs.txt"
     offers = "Offers"
 
+class Crawler():   
     def Run(self):
         haspages = True
         index = 0
@@ -19,9 +20,9 @@ class Crawler():
         
         while(haspages):
             pageoffers = list()
-            url = self.URL.format(index)
+            url = Config.URL.format(index)
             response = urllib.urlopen(url)
-            hrefs = re.findall(self.hrefpattern, response.read())
+            hrefs = re.findall(Config.hrefpattern, response.read())
             for href in hrefs:
                 pageoffers.append(href)
             index += 20
@@ -34,33 +35,42 @@ class Crawler():
             out.write(result)
    
     def DownloadOffers(self):
-        f = open(self.filename, "r")
+        f = open(Config.filename, "r")
         hrefs = list(json.loads(f.read()))
         for href in hrefs:
-            pageid = re.search(self.idpattern, href).group(0)
-            url = self.jobsbg + pageid
+            pageid = re.search(Config.idpattern, href).group(0)
+            url = Config.jobsbg + pageid
             response = urllib.urlopen(url).read()
-            with open(os.path.join(self.offers, pageid), "w+") as out:
+            with open(os.path.join(Config.offers, pageid), "w+") as out:
                 out.write(response)
  
 
 
 class Parser():
-      languages = [("\bjava\b(?!\s*script)", "Java"),
-      ("\bc\#", "C#"),
-      ("\bvb\b", "VisualBasic"),
-      ("\bvisual\s*basic\b", "VisualBasic"),
-      ("\bc\s*\+\+", "C++"),
-      ("(?!\bobjective)\bc(?!(#\+))\b", "C"),
-      ("\bphp\b", "PHP"),
-      ("\bpython\b", "Python"),
-      ("\bruby\b", "Ruby"),
-      ("\bobjective(\s-)*c\b", "ObjectiveC"),
-      ("\bjava\s*script\b", "JavaScript"),
-      ("\bdelphi\b", "Delphi")]
+      languages = [(r'\bjava\b(?!\s*script)', 'Java'),
+      (r'\bc\#', 'C#'),
+      (r'\bvb\b', 'VisualBasic'),
+      (r'\bvisual\s*basic\b', 'VisualBasic'),
+      (r'\bc\s*\+\+', 'C++'),
+      (r'\b(?!objective)\bc(?![#+]+)\b', 'C'),
+      (r'\bphp\b', 'PHP'),
+      (r'\bpython\b', 'Python'),
+      (r'\bruby\b', 'Ruby'),
+      (r'\bobjective(\s-)*c\b', 'ObjectiveC'),
+      (r'\bjava\s*script\b', 'JavaScript'),
+      (r'\bdelphi\b', 'Delphi')]
 
       def Parse(self):
-        print(self.languages)
+        result = dict([(lan, 0) for (pattern, lan) in self.languages])
+        for file in os.listdir(Config.offers):
+            with open(os.path.join(Config.offers, file), "r") as f:
+                content = f.read()
+                for (pattern, lan) in self.languages:
+                    if(re.search(pattern, content, flags = re.LOCALE | re.IGNORECASE | re.MULTILINE)):
+                        result[lan]+=1
+                        break
+        print(sorted(result.items(), key=lambda x: x[1]))                 
+                       
 
 #c = Crawler()
 #c.Run()
