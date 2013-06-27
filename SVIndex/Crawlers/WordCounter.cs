@@ -41,30 +41,28 @@ namespace SVIndex.Crawlers
 
         public static IEnumerable<string> GetTags(string article)
         {
+            //Tokenizer t = new SimpleTokenizer();
+            article = article.ToLower();
             foreach (var term in Terms)
             {
-                var words = article.Split().Select(i => i.ToLower()).ToArray();
-                var currentWord = 0;
-                foreach (var word in words)
+                //if (article.Contains(term))
+                //{
+                //    yield return term;
+                //}
+                //else
                 {
-                    currentWord++;
-                    if (term == word || Similarity.GetSimilarity(term, word) > .7)
+                    //var words = t.tokenize(article);
+                    var wordPattern = new Regex(@"[\w\.]+", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace);
+                    var words = wordPattern.Matches(article).OfType<Match>().Select(m => m.Value);
+                    foreach (var word in words)
                     {
-                        yield return term;
-                        break;
+                        if (Similarity.GetSimilarity(term, word) > .8)
+                        {
+                            yield return term;
+                            break;
+                        }
+                        // TODO: Phrases?
                     }
-                    //else
-                    //{
-                    //    if (currentWord < words.Length)
-                    //    {
-                    //        var longerWord = word + words[currentWord];
-                    //        if (term == longerWord || Similarity.GetSimilarity(term, longerWord) > .8)
-                    //        {
-                    //            yield return term;
-                    //            break;
-                    //        }
-                    //    }
-                    //}
                 }
             }
         }
