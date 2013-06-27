@@ -26,10 +26,17 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding Id}" Width="50" />
                     <DataGridTextColumn Binding="{Binding Date, StringFormat=yyyy/MM/dd}" />
-                    <DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Tags">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <ItemsControl ItemsSource="{Binding Categories}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ItemsControl ItemsSource="{Binding Tags}" />
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

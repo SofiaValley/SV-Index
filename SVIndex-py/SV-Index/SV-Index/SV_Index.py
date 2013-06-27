@@ -52,7 +52,7 @@ class Parser():
       (r'\bvb\b', 'VisualBasic'),
       (r'\bvisual\s*basic\b', 'VisualBasic'),
       (r'\bc\s*\+\+', 'C++'),
-      (r'\b(?!objective)\bc(?![#+]+)\b', 'C'),
+      (r'\b(?!objective)\bc(?![#+])\b', 'C'),
       (r'\bphp\b', 'PHP'),
       (r'\bpython\b', 'Python'),
       (r'\bruby\b', 'Ruby'),
@@ -66,9 +66,8 @@ class Parser():
             with open(os.path.join(Config.offers, file), "r") as f:
                 content = f.read()
                 for (pattern, lan) in self.languages:
-                    if(re.search(pattern, content, flags = re.LOCALE | re.IGNORECASE | re.MULTILINE)):
+                    if(re.search(pattern, content, flags = re.IGNORECASE | re.MULTILINE | re.UNICODE)):
                         result[lan]+=1
-                        break
         print(sorted(result.items(), key=lambda x: x[1]))                 
                        
 

@@ -12,6 +12,63 @@ namespace SVIndex.Crawlers
 {
     public class WordCounter
     {
+        private static List<string> terms;
+
+        public static List<string> Terms
+        {
+            get
+            {
+                if (terms == null)
+                {
+                    terms = GetTerms();
+                }
+                return terms;
+            }
+        }
+
+        private static List<string> GetTerms()
+        {
+            List<String> terms = null;
+            Uri uri = new Uri("/terms.txt", UriKind.Relative);
+            StreamResourceInfo info = Application.GetResourceStream(uri);
+            using (var reader = new StreamReader(info.Stream))
+            {
+                var termsFile = reader.ReadToEnd();
+                terms = termsFile.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+            return terms;
+        }
+
+        public static IEnumerable<string> GetTags(string article)
+        {
+            foreach (var term in Terms)
+            {
+                var words = article.Split().Select(i => i.ToLower()).ToArray();
+                var currentWord = 0;
+                foreach (var word in words)
+                {
+                    currentWord++;
+                    if (term == word || Similarity.GetSimilarity(term, word) > .7)
+                    {
+                        yield return term;
+                        break;
+                    }
+                    //else
+                    //{
+                    //    if (currentWord < words.Length)
+                    //    {
+                    //        var longerWord = word + words[currentWord];
+                    //        if (term == longerWord || Similarity.GetSimilarity(term, longerWord) > .8)
+                    //        {
+                    //            yield return term;
+                    //            break;
+                    //        }
+                    //    }
+                    //}
+                }
+            }
+        }
+
         public static Dictionary<string, int> CountWords(IEnumerable<string> articles)
         {
             List<String> terms = null;
@@ -20,23 +77,28 @@ namespace SVIndex.Crawlers
             using (var reader = new StreamReader(info.Stream))
             {
                 var termsFile = reader.ReadToEnd();
-                terms = termsFile.Split().ToList();
+                terms = termsFile.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).ToList();
             }
 
             var words = new Dictionary<string, int>();
+            foreach (var term in terms)
+            {
+                words[term] = 0;
+            }
             foreach (var article in articles)
             {
-                var wordPattern = new Regex(@"\w+", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace);
-
-                foreach (Match match in wordPattern.Matches(article))
+                //var wordPattern = new Regex(@"[^\s]+", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace);
+                foreach (var term in terms)
                 {
-                    var word = match.Value.ToLower();
-                    if (terms.Contains(word))
+                    foreach (var word in article.Split().Select(i => i.ToLower()))
                     {
-                        int currentCount = 0;
-                        words.TryGetValue(word, out currentCount);
-
-                        words[word] = ++currentCount;
+                        if (term == word)
+                        {
+                            int currentCount;
+                            words.TryGetValue(term, out currentCount);
+                            words[term] = ++currentCount;
+                            break;
+                        }
                     }
                 }
             }
@@ -87,6 +149,59 @@ namespace SVIndex.Crawlers
             }
 
             return words.Where(p => p.Value > 2).ToDictionary(p => p.Key, p => p.Value);
+        }
+    }
+
+    public static class Similarity
+    {
+        public static int GetLevensteinDistance(this string firstString, string secondString)
+        {
+            if (firstString == null)
+                throw new ArgumentNullException("firstString");
+            if (secondString == null)
+                throw new ArgumentNullException("secondString");
+            if (firstString == secondString)
+                return 0;
+
+            int[,] matrix = new int[firstString.Length + 1, secondString.Length + 1];
+
+            for (int i = 0; i <= firstString.Length; i++)
+                matrix[i, 0] = i; // deletion
+            for (int j = 0; j <= secondString.Length; j++)
+                matrix[0, j] = j; // insertion
+
+            for (int i = 0; i < firstString.Length; i++)
+                for (int j = 0; j < secondString.Length; j++)
+                    if (firstString[i] == secondString[j])
+                        matrix[i + 1, j + 1] = matrix[i, j];
+                    else
+                    {
+                        matrix[i + 1, j + 1] = Math.Min(matrix[i, j + 1] + 1, matrix[i + 1, j] + 1); //deletion or insertion
+                        matrix[i + 1, j + 1] = Math.Min(matrix[i + 1, j + 1], matrix[i, j] + 1); //substitution
+                    }
+            return matrix[firstString.Length, secondString.Length];
+        }
+
+        public static double GetSimilarity(this string firstString, string secondString)
+        {
+            if (firstString == null)
+                throw new ArgumentNullException("firstString");
+            if (secondString == null)
+                throw new ArgumentNullException("secondString");
+
+            if (firstString == secondString)
+                return 1;
+
+            int longestLenght = Math.Max(firstString.Length, secondString.Length);
+            int distance = GetLevensteinDistance(firstString, secondString);
+            double percent = distance / (double)longestLenght;
+            return 1 - percent;
+        }
+
+
+        public static string CleanUp(this string str)
+        {
+            return str.Trim().Trim('"').Trim('\'').Trim('"').Replace(@"&quot;", "").Replace("\n", " ");
         }
     }
 }

@@ -24,7 +24,7 @@ namespace SVIndex.ViewModels
         private const string upImage = "up.jpg";
         private const string downImage = "down.jpg";
         private const string imageUrl = "<img src=\"http://sofiavalley.com/wp-content/uploads/2013/03/{0}\" alt=\"\" width=\"16\" height=\"16\" class=\"alignnone size-full wp-image-1743\" />";
- 
+
         private static readonly List<Mention> mentions = new List<Mention>
                                               {
                                                   new Mention(@"\bjava\b(?!\s*script)", "Java"),
@@ -141,8 +141,10 @@ namespace SVIndex.ViewModels
 
         private void WordCount()
         {
-            this.Words = WordCounter.CountTokens(this.Posts.Select(x => x.Details));
+            //this.Words = WordCounter.CountWords(this.Posts.Select(x => x.Details));
             //this.Words = WordCounter.CountWordsExtended(this.Posts.Select(x => x.Details));
+
+            this.Words = posts.SelectMany(p => p.Tags).GroupBy(p => p).ToDictionary(g => g.Key, g => g.Count());
 
             this.ExportWords();
         }
@@ -172,6 +174,7 @@ namespace SVIndex.ViewModels
             foreach (JobPost post in jobPosts)
             {
                 post.Categories = GetCategories(post);
+                post.Tags = GetTags(post);
                 this.AddPost(post);
             }
         }
@@ -250,10 +253,10 @@ namespace SVIndex.ViewModels
                 }
             }
         }
-     
+
         private static string GetImage(double delta)
         {
-            return string.Format(imageUrl, delta > 0 ? upImage : downImage);          
+            return string.Format(imageUrl, delta > 0 ? upImage : downImage);
         }
 
         private void Preserve()
@@ -270,6 +273,12 @@ namespace SVIndex.ViewModels
         {
             var text = post.Title + " " + post.Details;
             return mentions.Where(m => m.Regex.IsMatch(text)).Select(m => m.Technology).ToArray();
+        }
+
+        private static string[] GetTags(JobPost post)
+        {
+            var text = post.Title + " " + post.Details;
+            return WordCounter.GetTags(text).ToArray();
         }
 
         private static string GetCurrentId()

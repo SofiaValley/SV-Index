@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.Globalization;
 
 namespace SVIndex.Crawlers
@@ -12,6 +13,7 @@ namespace SVIndex.Crawlers
         public string RefNo { get; set; }
         public DateTime Date { get; set; }
         public string[] Categories { get; set; }
+        public string[] Tags { get; set; }
         public string JobType { get; set; }
         public string Level { get; set; }
         public string EmploymentType { get; set; }

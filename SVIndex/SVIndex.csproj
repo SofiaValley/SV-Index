@@ -94,9 +94,7 @@
     <Compile Include="Crawlers\WordCounter.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\Mention.cs" />
-    <Compile Include="BTree\SimpleTokenizer.cs" />
     <Compile Include="ViewModels\SVIndexInfo.cs" />
-    <Compile Include="BTree\TreeWalker.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -106,11 +104,8 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="BTree\BTree.cs" />
-    <Compile Include="BTree\BTreeExtensions.cs" />
     <Compile Include="Crawlers\JobPost.cs" />
     <Compile Include="Crawlers\JobsBgCrawler.cs" />
-    <Compile Include="BTree\ITokenizer.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
